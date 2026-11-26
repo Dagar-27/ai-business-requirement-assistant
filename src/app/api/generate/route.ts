@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const SYSTEM_PROMPT = `You are a Principal AI Business Analyst and Product Owner.
 Convert unstructured stakeholder notes into clear, structured product and business documentation.
 
@@ -27,7 +23,19 @@ JSON SCHEMA:
 
 export async function POST(req: NextRequest) {
   try {
-    const { requirements } = await req.json();
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "OPENAI_API_KEY is not configured in Vercel Environment Variables." },
+        { status: 500 }
+      );
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const body = await req.json();
+    const requirements = body?.requirements;
 
     if (!requirements || typeof requirements !== "string" || requirements.trim().length < 10) {
       return NextResponse.json(
@@ -53,11 +61,9 @@ export async function POST(req: NextRequest) {
 
     const parsed = JSON.parse(content);
     return NextResponse.json(parsed);
-  } catch (error: any) {
-    console.error("Generation error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to generate requirements." },
-      { status: 500 }
-    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to generate requirements.";
+    console.error("Generation error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
