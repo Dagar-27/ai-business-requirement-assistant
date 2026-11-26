@@ -48,9 +48,9 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error || "Something went wrong");
       setResult(data);
       setActiveTab("businessRequirements");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally  {
       setLoading(false);
     }
   };
