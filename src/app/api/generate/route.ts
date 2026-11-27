@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const model = process.env.GROQ_API_KEY ? "llama-3.3-70b-versatile" : "gpt-4o-mini";
+    const model = process.env.GROQ_API_KEY
+      ? process.env.GROQ_MODEL || "openai/gpt-oss-20b"
+      : "gpt-4o-mini";
 
     const completion = await client.chat.completions.create({
       model,
