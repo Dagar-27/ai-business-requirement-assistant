@@ -23,15 +23,19 @@ JSON SCHEMA:
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY is not configured in Vercel Environment Variables." },
+        { error: "GROQ_API_KEY is missing in Vercel Environment Variables." },
         { status: 500 }
       );
     }
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    const client = new OpenAI({
+      apiKey,
+      baseURL: process.env.GROQ_API_KEY
+        ? "https://api.groq.com/openai/v1"
+        : undefined,
     });
 
     const body = await req.json();
@@ -44,8 +48,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const model = process.env.GROQ_API_KEY ? "llama-3.3-70b-versatile" : "gpt-4o-mini";
+
+    const completion = await client.chat.completions.create({
+      model,
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
@@ -62,7 +68,8 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(content);
     return NextResponse.json(parsed);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to generate requirements.";
+    const message =
+      err instanceof Error ? err.message : "Failed to generate requirements.";
     console.error("Generation error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
